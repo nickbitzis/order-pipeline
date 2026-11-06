@@ -1,0 +1,12 @@
+# Illustrative only. A ReadWriteOnce volume pins every pod to one node, which is
+# why a real cluster would use Postgres and a managed broker instead of SQLite.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orderpipeline-data
+  labels: {app.kubernetes.io/part-of: orderpipeline}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi

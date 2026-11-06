@@ -1,0 +1,44 @@
+# Exactly one relay per outbox table, so strategy Recreate avoids two during a rollout.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderpipeline-relay
+  labels: {app.kubernetes.io/name: relay, app.kubernetes.io/part-of: orderpipeline}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: relay}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: relay, app.kubernetes.io/part-of: orderpipeline}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: relay
+          image: ghcr.io/example/orderpipeline:1.0.0
+          args: ["relay"]
+          envFrom:
+            - configMapRef: {name: orderpipeline-config}
+          env:
+            - {name: ORDERPIPELINE_SERVICE, value: relay}
+          # Workers have no HTTP port. The probe checks a heartbeat file the
+          # worker loop writes on every poll.
+          readinessProbe:
+            exec: {command: ["orderpipeline", "healthcheck"]}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec: {command: ["orderpipeline", "healthcheck"]}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 250m, memory: 192Mi}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: orderpipeline-data}

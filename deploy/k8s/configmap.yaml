@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orderpipeline-config
+  labels: {app.kubernetes.io/part-of: orderpipeline}
+data:
+  ORDERPIPELINE_DB_PATH: /data/orderpipeline.db
+  ORDERPIPELINE_PROVIDER_FAILURE_RATE: "0.1"
+  ORDERPIPELINE_MAX_ATTEMPTS: "5"
+  ORDERPIPELINE_VISIBILITY_TIMEOUT: "5"
+  ORDERPIPELINE_BACKOFF_BASE: "0.2"
+  ORDERPIPELINE_BACKOFF_MAX: "5"
+  ORDERPIPELINE_CRASH_EXITS_PROCESS: "true"
+  ORDERPIPELINE_LOG_LEVEL: INFO

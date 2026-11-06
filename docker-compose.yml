@@ -1,0 +1,58 @@
+# Four containers, one image, one shared volume holding the SQLite database.
+# Chaos knobs are environment variables; try ORDERPIPELINE_CRASH_RATE=0.05.
+x-common: &common
+  build: .
+  image: orderpipeline:local
+  restart: unless-stopped
+  volumes:
+    - pipeline-data:/data
+  env_file:
+    - path: .env
+      required: false
+  environment: &env
+    ORDERPIPELINE_DB_PATH: /data/orderpipeline.db
+    ORDERPIPELINE_PROVIDER_FAILURE_RATE: "0.1"
+    ORDERPIPELINE_CRASH_EXITS_PROCESS: "true"
+
+services:
+  api:
+    <<: *common
+    command: ["api", "--port", "8000"]
+    environment:
+      <<: *env
+      ORDERPIPELINE_SERVICE: api
+    ports:
+      - "8000:8000"
+
+  relay:
+    <<: *common
+    command: ["relay"]
+    environment:
+      <<: *env
+      ORDERPIPELINE_SERVICE: relay
+    depends_on:
+      api:
+        condition: service_healthy
+
+  payments:
+    <<: *common
+    command: ["payments"]
+    environment:
+      <<: *env
+      ORDERPIPELINE_SERVICE: payments
+    depends_on:
+      api:
+        condition: service_healthy
+
+  inventory:
+    <<: *common
+    command: ["inventory"]
+    environment:
+      <<: *env
+      ORDERPIPELINE_SERVICE: inventory
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pipeline-data:
